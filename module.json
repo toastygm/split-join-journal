@@ -39,5 +39,5 @@
   "dependencies": [],
   "socket": true,
   "manifest": "https://github.com/toastygm/split-join-journal/releases/latest/download/module.json",
-  "download": "https://github.com/toastygm/split-join-journal/releases/download/v1.1.2/module.zip"
+  "download": "https://github.com/toastygm/split-join-journal/releases/download/v1.0.0/module.zip"
 }
