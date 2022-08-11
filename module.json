@@ -15,7 +15,8 @@
     }
   ],
   "flags": {
-    "allowBugReporter": true
+    "allowBugReporter": true,
+    "fvttdevleague": { "package-jam": 2022 }
   },
   "compatibility": {
     "minimum": "10",
