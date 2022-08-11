@@ -1,0 +1,19 @@
+<form>
+    <div class="form-group">
+        <label>{{localize "SPLITJOINJNL.SPLITPAGE.splitOn"}}</label>
+        <select name="selectedHeading" data-dtype="String">
+            {{#select defaultHeading}}
+            {{#each headings as |heading h|}}
+            <option value="{{h}}">{{heading}}</option>
+            {{/each}}
+            {{/select}}
+        </select>
+    </div>
+    <div class="form-group">
+        <p>{{localize "SPLITJOINJNL.SPLITPAGE.journalNameDesc"}}</p>
+    </div>
+    <div class="form-group"></div>
+        <label>{{localize "SPLITJOINJNL.SPLITPAGE.journalName"}}</label>
+        <input type="text" name="journalName" value="{{defaultJournalName}}" data-dtype="String"/>
+    </div>
+</form>
