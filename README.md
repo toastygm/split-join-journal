@@ -11,3 +11,4 @@ With this module you can:
 2. Split all of the pages in a Journal into separate Journals (one page per journal), either in a new folder or in the existing folder.
 3. Join all of the Journals (and all of their pages) within a single folder into a new single Journal, with all of the pages from all of the Journals.
 
+This module was inspired by the module "Split Journal", which worked with the old V1 journals.
