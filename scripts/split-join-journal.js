@@ -182,7 +182,7 @@ async function splitJournalPagesIntoSeparateJournals(journal, newFolderName) {
     let folder = journal.folder;
 
     if (!journal.pages.size) {
-        ui.notification.info(`Journal ${journal.name} has no pages`);
+        ui.notifications.info(`Journal ${journal.name} has no pages`);
         return;
     }
 

@@ -2,7 +2,7 @@
   "id": "split-join-journal",
   "title": "Split-Join Journal",
   "description": "Split and Join pages within a Journal or Journals within a folder.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "url": "https://github.com/toastygm/split-join-journal",
   "bugs": "https://github.com/toastygm/split-join-journal/issues",
   "license": "LICENSE",
@@ -16,29 +16,27 @@
   ],
   "flags": {
     "allowBugReporter": true,
-    "fvttdevleague": { "package-jam": 2022 }
+    "fvttdevleague": {
+      "package-jam": 2022
+    }
   },
   "compatibility": {
     "minimum": "10",
-    "verified": "10"
+    "verified": "12.331"
   },
   "scripts": [
     "scripts/split-html.js",
     "scripts/split-join-journal.js"
   ],
-  "esmodules": [],
-  "styles": [],
   "languages": [
     {
       "lang": "en",
       "name": "English",
-      "path": "lang/en.json"
+      "path": "lang/en.json",
+      "flags": {}
     }
   ],
-  "packs": [],
-  "system": [],
-  "dependencies": [],
   "socket": true,
   "manifest": "https://github.com/toastygm/split-join-journal/releases/latest/download/module.json",
-  "download": "https://github.com/toastygm/split-join-journal/releases/download/v1.0.0/module.zip"
+  "download": "https://github.com/toastygm/split-join-journal/releases/download/v1.0.1/module.zip"
 }
