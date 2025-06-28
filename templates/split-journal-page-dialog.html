@@ -2,11 +2,7 @@
     <div class="form-group">
         <label>{{localize "SPLITJOINJNL.SPLITPAGE.splitOn"}}</label>
         <select name="selectedHeading" data-dtype="String">
-            {{#select defaultHeading}}
-            {{#each headings as |heading h|}}
-            <option value="{{h}}">{{heading}}</option>
-            {{/each}}
-            {{/select}}
+            {{selectOptions headings value=defaultHeading}}            
         </select>
     </div>
     <div class="form-group">

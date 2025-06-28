@@ -1,3 +1,5 @@
+const { flattenObject } = foundry.utils;
+
 function splitContent(page, heading) {
     if (!page || !heading) return [];
 
@@ -56,26 +58,26 @@ function currentHeadings(html) {
 function handleSplitPageContextMenu(html, options) {
 
     options.push({
-        name: game.i18n.localize("SPLITJOINJNL.SPLITPAGE.contextMenu"),
+        name: "SPLITJOINJNL.SPLITPAGE.contextMenu",
         icon: '<i class="fas fa-list-ul"></i>',
         condition: game.user.isGM,
         callback: async (header) => {
-            const pageId = header.data("page-id");
+            const pageId = header.dataset.pageId;
             const page = game.journal.reduce((foundPage, jnl) => {
                 if (!foundPage) {
                     foundPage = jnl.pages.get(pageId);
                 }
                 return foundPage;
             }, undefined);
-        
+
             // only enable context item for text pages, otherwise ignore
             if (page?.type != "text") {
-                const msg = game.i18n.format("SPLITJOINJNL.SPLITPAGE.errorNotText", {journalName: page.parent.name, pageName: page.name});
+                const msg = game.i18n.format("SPLITJOINJNL.SPLITPAGE.errorNotText", { journalName: page.parent.name, pageName: page.name });
                 ui.notifications.info(msg);
                 console.log(`split-join-journal | ${msg}`);
                 return;
             }
-        
+
             const availHeadings = currentHeadings(page.text.content);
             if (availHeadings.length) {
                 const splitJournalPageDialog = 'modules/split-join-journal/templates/split-journal-page-dialog.html';
@@ -88,24 +90,27 @@ function handleSplitPageContextMenu(html, options) {
                     dialogOptions.headings[key] = val;
                     if (!dialogOptions.defaultHeading) dialogOptions.defaultHeading = key;
                 });
-            
-                const dlghtml = await renderTemplate(splitJournalPageDialog, dialogOptions);
+
+                const dlghtml = await foundry.applications.handlebars.renderTemplate(splitJournalPageDialog, dialogOptions);
 
                 // request header level and new journal name
-                Dialog.prompt({
-                    title: game.i18n.localize("SPLITJOINJNL.SPLITPAGE.title"),
+                foundry.applications.api.DialogV2.prompt({
+                    window: { title: "SPLITJOINJNL.SPLITPAGE.title" },
                     content: dlghtml.trim(),
-                    label: game.i18n.localize("SPLITJOINJNL.SPLITPAGE.splitSubmit"),
+                    ok: {
+                        label: "SPLITJOINJNL.SPLITPAGE.splitSubmit",
+                        callback: async (event, button, dialog) => {
+                            const form = button.form;
+                            const selectedHeading = form.selectedHeading.value;
+                            const newJournalName = form.journalName.value;
+                            splitJournalPageIntoSeparatePages(selectedHeading, page, newJournalName);
+                        }
+                    },
                     rejectClose: false,
-                    callback: async html => {
-                        const form = html[0].querySelector("form");
-                        const selectedHeading = form.selectedHeading.value;
-                        const newJournalName = form.journalName.value;
-                        splitJournalPageIntoSeparatePages(selectedHeading, page, newJournalName);
-                    }
+
                 });
             } else {
-                const msg = game.i18n.format("SPLITJOINJNL.SPLITPAGE.errorNoHeadings", {journalName: page.parent.name, pageName: page.name});
+                const msg = game.i18n.format("SPLITJOINJNL.SPLITPAGE.errorNoHeadings", { journalName: page.parent.name, pageName: page.name });
                 ui.notifications.info(msg);
                 console.log(`split-join-journal | ${msg}`);
             }
@@ -120,30 +125,33 @@ function handleSplitPageContextMenu(html, options) {
  */
 async function handleJournalContextMenu(html, options) {
     options.push({
-        name: game.i18n.localize("SPLITJOINJNL.SPLITJOURNAL.contextMenu"),
+        name: "SPLITJOINJNL.SPLITJOURNAL.contextMenu",
         icon: '<i class="fas fa-split"></i>',
         condition: game.user.isGM,
         callback: async (header) => {
-            const journalId = header.data("document-id");
+            const journalId = header.dataset.entryId;
             const journal = game.journal.get(journalId);
             const splitJournalDialog = 'modules/split-join-journal/templates/split-journal-dialog.html';
             const dialogOptions = {
                 "defaultFolderName": journal.name
             };
-        
-            const dlghtml = await renderTemplate(splitJournalDialog, dialogOptions);
+
+            const dlghtml = await foundry.applications.handlebars.renderTemplate(splitJournalDialog, dialogOptions);
 
             // request header level and new journal name
-            Dialog.prompt({
-                title: game.i18n.localize("SPLITJOINJNL.SPLITJOURNAL.title"),
+            foundry.applications.api.DialogV2.prompt({
+                window: { title: "SPLITJOINJNL.SPLITJOURNAL.title" },
                 content: dlghtml.trim(),
-                label: game.i18n.localize("SPLITJOINJNL.SPLITJOURNAL.splitSubmit"),
+                ok: {
+                    label: "SPLITJOINJNL.SPLITJOURNAL.splitSubmit",
+                    callback: async (event, button, dialog) => {
+                        const form = button.form;
+                        const folderName = form.folderName.value;
+                        splitJournalPagesIntoSeparateJournals(journal, folderName);
+                    }
+                },
                 rejectClose: false,
-                callback: async html => {
-                    const form = html[0].querySelector("form");
-                    const folderName = form.folderName.value;
-                    splitJournalPagesIntoSeparateJournals(journal, folderName);
-                }
+
             });
 
         }
@@ -156,13 +164,18 @@ async function handleJournalContextMenu(html, options) {
  * @param {String} html 
  * @param {Object} options 
  */
-async function handleJournalFolderContextMenu(html, options) {
+async function handleJournalFolderContextMenu(app, options) {
+    if (app.options.id != 'journal') return; //workaround as this is called for all folders, not just journal folders
+
     options.push({
-        name: game.i18n.localize("SPLITJOINJNL.MERGEFOLDER.contextMenu"),
+        name: "SPLITJOINJNL.MERGEFOLDER.contextMenu",
         icon: '<i class="fas fa-code-merge"></i>',
-        condition: li => game.user.isGM && game.folders.get(li.parent().data("folder-id"))?.contents.length,
+        condition: (li) => {
+            return game.user.isGM && game.folders.get(li.parentElement.dataset.folderId)?.contents.length
+        },
         callback: async (header) => {
-            const journalFolderId = header.parent().data("folder-id");
+
+            const journalFolderId = header.parentElement.dataset.folderId;
             const folder = game.folders.get(journalFolderId);
             mergeJournalFolderIntoSingleJournal(folder);
         }
@@ -187,11 +200,11 @@ async function splitJournalPagesIntoSeparateJournals(journal, newFolderName) {
     }
 
     if (newFolderName) {
-        folder = await Folder.create({name: newFolderName, folder: journal.folder, type: "JournalEntry", sorting: "m"});
+        folder = await Folder.create({ name: newFolderName, folder: journal.folder, type: "JournalEntry", sorting: "m" });
     }
-    
+
     for (let page of journal.pages) {
-        const newJournal = await JournalEntry.create({name: page.name, folder: folder, sort: page.sort});
+        const newJournal = await JournalEntry.create({ name: page.name, folder: folder, sort: page.sort });
 
         const pageData = {
             name: page.name,
@@ -201,20 +214,20 @@ async function splitJournalPagesIntoSeparateJournals(journal, newFolderName) {
 
         switch (page.type) {
             case "text":
-                Object.entries(flattenObject(page.text)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                Object.entries(flattenObject(page.text)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                 break;
 
             case "image":
-                Object.entries(flattenObject(page.image)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                Object.entries(flattenObject(page.image)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                 break;
 
             case "video":
-                Object.entries(flattenObject(page.video)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                Object.entries(flattenObject(page.video)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                 break;
         }
 
         // Create a single page in the new journal with old page data
-        JournalEntryPage.create(pageData, {parent: newJournal});
+        JournalEntryPage.create(pageData, { parent: newJournal });
     }
 
 }
@@ -240,10 +253,10 @@ async function splitJournalPageIntoSeparatePages(targetHeading, page, newJournal
 
     if (newJournalName.trim()) {
         // Journal name provided, so create pages in new journal
-        journal = await JournalEntry.create({name: newJournalName.trim(), folder: page.parent.folder});
+        journal = await JournalEntry.create({ name: newJournalName.trim(), folder: page.parent.folder });
     }
 
-    await JournalEntryPage.createDocuments(pageData, {parent: journal});
+    await JournalEntryPage.createDocuments(pageData, { parent: journal });
 }
 
 /**
@@ -251,7 +264,7 @@ async function splitJournalPageIntoSeparatePages(targetHeading, page, newJournal
  * @param {Folder} folder source folder to merge
  */
 async function mergeJournalFolderIntoSingleJournal(folder) {
-    const newJournal = await JournalEntry.create({name: folder.name, folder: folder.folder});
+    const newJournal = await JournalEntry.create({ name: folder.name, folder: folder.folder });
     folder.contents.forEach(journal => {
         journal.pages.forEach(page => {
             const pageData = {
@@ -259,28 +272,28 @@ async function mergeJournalFolderIntoSingleJournal(folder) {
                 type: page.type,
                 src: page.src
             }
-    
+
             switch (page.type) {
                 case "text":
-                    Object.entries(flattenObject(page.text)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                    Object.entries(flattenObject(page.text)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                     break;
-    
+
                 case "image":
-                    Object.entries(flattenObject(page.image)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                    Object.entries(flattenObject(page.image)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                     break;
-    
+
                 case "video":
-                    Object.entries(flattenObject(page.video)).forEach(([key, val]) => pageData[`text.${key}`] = val );
+                    Object.entries(flattenObject(page.video)).forEach(([key, val]) => pageData[`text.${key}`] = val);
                     break;
             }
-    
+
             // Create a single page in the new journal with old page data
-            JournalEntryPage.create(pageData, {parent: newJournal});
+            JournalEntryPage.create(pageData, { parent: newJournal });
         });
     });
 }
 
 // Add Split Journal to the entries
-Hooks.on('getJournalSheetEntryContext', handleSplitPageContextMenu);
-Hooks.on('getJournalDirectoryEntryContext', handleJournalContextMenu);
-Hooks.on('getJournalDirectoryFolderContext', handleJournalFolderContextMenu);
+Hooks.on('getJournalEntryPageContextOptions', handleSplitPageContextMenu);
+Hooks.on('getJournalEntryContextOptions', handleJournalContextMenu);
+Hooks.on('getFolderContextOptions', handleJournalFolderContextMenu); //this seems to be wrong in foundry 13 atm it should be "getJournalEntryFolderContextOptions"
